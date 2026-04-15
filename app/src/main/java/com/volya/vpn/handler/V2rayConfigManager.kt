@@ -460,9 +460,6 @@ object V2rayConfigManager {
                 MmkvManager.decodeSettingsString(AppConfig.PREF_ROUTING_DOMAIN_STRATEGY)
                     ?: "AsIs"
 
-            // Load automatic Russia split-tunneling rules from assets
-            loadDefaultRoutingRules(volyaConfig)
-
             // Load saved user rulesets (if any)
             val rulesetItems = MmkvManager.decodeRoutingRulesets()
             rulesetItems?.forEach { key ->
