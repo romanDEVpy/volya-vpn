@@ -34,20 +34,23 @@ jobs:
 
       - name: Build APK
         run: |
+          cd V2rayNG
           chmod +x gradlew
           ./gradlew assembleFdroidDebug --no-daemon
 
       - name: Collect APKs
         run: |
-          mkdir -p dist
-          find . -path "./V2rayNG/app/build/outputs/apk/fdroid/debug/*.apk" -exec cp {} dist/ \;
-          ls -la dist/
+          mkdir -p output
+          cp V2rayNG/app/build/outputs/apk/fdroid/debug/*.apk output/ 2>/dev/null || \
+          cp app/build/outputs/apk/fdroid/debug/*.apk output/ 2>/dev/null || \
+          find . -name "*.apk" -exec cp {} output/ \;
+          ls -la output/
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: VolyaVPN-Debug-APK
-          path: V2rayNG/app/build/outputs/apk/fdroid/debug/*.apk
+          path: output/*.apk
           retention-days: 30
 
       - name: Create Release
@@ -60,7 +63,7 @@ jobs:
             Auto-built VolyaVPN APK
             - Date: ${{ github.event.head_commit.timestamp || 'manual' }}
             - Commit: ${{ github.sha }}
-          files: V2rayNG/app/build/outputs/apk/fdroid/debug/*.apk
+          files: output/*.apk
           draft: false
           prerelease: true
         env:
