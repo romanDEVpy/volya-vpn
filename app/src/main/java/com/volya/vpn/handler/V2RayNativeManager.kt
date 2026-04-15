@@ -5,15 +5,15 @@ import android.util.Log
 import com.volya.vpn.AppConfig
 import com.volya.vpn.util.Utils
 import go.Seq
-import libvolya.CoreCallbackHandler
-import libvolya.CoreController
-import libvolya.Libvolya
+import libv2ray.CoreCallbackHandler
+import libv2ray.CoreController
+import libv2ray.Libv2ray
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * V2Ray Native Library Manager
  *
- * Thread-safe singleton wrapper for Libvolya native methods.
+ * Thread-safe singleton wrapper for Libv2ray native methods.
  * Provides initialization protection and unified API for V2Ray core operations.
  */
 object V2RayNativeManager {
@@ -31,7 +31,7 @@ object V2RayNativeManager {
                 Seq.setContext(context?.applicationContext)
                 val assetPath = Utils.userAssetPath(context)
                 val deviceId = Utils.getDeviceIdForXUDPBaseKey()
-                Libvolya.initCoreEnv(assetPath, deviceId)
+                Libv2ray.initCoreEnv(assetPath, deviceId)
                 Log.i(AppConfig.TAG, "V2Ray core environment initialized successfully")
             } catch (e: Exception) {
                 Log.e(AppConfig.TAG, "Failed to initialize V2Ray core environment", e)
@@ -51,7 +51,7 @@ object V2RayNativeManager {
      */
     fun getLibVersion(): String {
         return try {
-            Libvolya.checkVersionX()
+            Libv2ray.checkVersionX()
         } catch (e: Exception) {
             Log.e(AppConfig.TAG, "Failed to check V2Ray version", e)
             "Unknown"
@@ -67,7 +67,7 @@ object V2RayNativeManager {
      */
     fun measureOutboundDelay(config: String, testUrl: String): Long {
         return try {
-            Libvolya.measureOutboundDelay(config, testUrl)
+            Libv2ray.measureOutboundDelay(config, testUrl)
         } catch (e: Exception) {
             Log.e(AppConfig.TAG, "Failed to measure outbound delay", e)
             -1L
@@ -82,7 +82,7 @@ object V2RayNativeManager {
      */
     fun newCoreController(handler: CoreCallbackHandler): CoreController {
         return try {
-            Libvolya.newCoreController(handler)
+            Libv2ray.newCoreController(handler)
         } catch (e: Exception) {
             Log.e(AppConfig.TAG, "Failed to create core controller", e)
             throw e

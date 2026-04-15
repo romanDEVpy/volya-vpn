@@ -23,9 +23,9 @@ import com.volya.vpn.util.Utils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import libvolya.CoreCallbackHandler
-import libvolya.CoreController
-import libvolya.ProcessFinder
+import libv2ray.CoreCallbackHandler
+import libv2ray.CoreController
+import libv2ray.ProcessFinder
 import java.lang.ref.SoftReference
 import java.net.InetSocketAddress
 
