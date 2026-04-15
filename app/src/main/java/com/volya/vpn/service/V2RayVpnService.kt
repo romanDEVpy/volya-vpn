@@ -15,6 +15,7 @@ import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.os.StrictMode
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import androidx.annotation.RequiresApi
 import com.volya.vpn.AppConfig
 import com.volya.vpn.AppConfig.LOOPBACK
@@ -94,8 +95,17 @@ class V2RayVpnService : VpnService(), ServiceControl {
      * Starts foreground immediately with a minimal notification to avoid timeout.
      */
     private fun startForegroundNow() {
-        val notification = android.app.Notification.Builder(this, AppConfig.RAY_NG_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_stat_name)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = android.app.NotificationChannel(
+                AppConfig.RAY_NG_CHANNEL_ID,
+                AppConfig.RAY_NG_CHANNEL_NAME,
+                android.app.NotificationManager.IMPORTANCE_LOW
+            )
+            val nm = getSystemService(android.app.NotificationManager::class.java)
+            nm.createNotificationChannel(channel)
+        }
+        val notification = androidx.core.app.NotificationCompat.Builder(this, AppConfig.RAY_NG_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("Volya VPN")
             .setOngoing(true)
             .setOnlyAlertOnce(true)
