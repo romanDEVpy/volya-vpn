@@ -11,7 +11,7 @@
     <string name="pull_down_to_refresh">Please pull down to refresh!</string>
 
     <!-- Notifications -->
-    <string name="notification_action_stop_volya">Ngắt kết nối volyaVPN</string>
+    <string name="notification_action_stop_v2ray">Ngắt kết nối volyaVPN</string>
     <string name="toast_permission_denied">Vui lòng cấp quyền cần thiết cho volyaVPN! Bạn đã từ chối các quyền cần thiết như Camera hay Bộ nhớ?</string>
     <string name="toast_permission_denied_notification">Unable to obtain the notification permission</string>
     <string name="notification_action_more">Nhấn để biết thêm...</string>

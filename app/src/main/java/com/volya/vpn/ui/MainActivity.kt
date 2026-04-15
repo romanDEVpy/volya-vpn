@@ -4,12 +4,9 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.net.VpnService
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.widget.TextView
-import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
@@ -25,14 +22,17 @@ import com.volya.vpn.handler.AngConfigManager
 import com.volya.vpn.handler.MmkvManager
 import com.volya.vpn.handler.SettingsManager
 import com.volya.vpn.handler.V2RayServiceManager
-import com.volya.vpn.handler.NotificationManager
 import com.volya.vpn.dto.ProfileItem
+import com.volya.vpn.viewmodel.MainViewModel
+import androidx.activity.viewModels
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MainActivity : HelperBaseActivity() {
+
+    private val mainViewModel: MainViewModel by viewModels()
 
     private var isRunning: Boolean = false
     private var isConnecting: Boolean = false
@@ -50,11 +50,9 @@ class MainActivity : HelperBaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                moveTaskToBack(true)
-            }
-        })
+        onBackPressedDispatcher.addCallback(this) {
+            moveTaskToBack(true)
+        }
 
         val fab = findViewById<FloatingActionButton>(R.id.fab)
         fab.setOnClickListener { handleFabAction() }
@@ -66,9 +64,7 @@ class MainActivity : HelperBaseActivity() {
         findViewById<View>(R.id.tvTestState).setOnClickListener {
             if (isRunning) {
                 findViewById<TextView>(R.id.tvTestState).text = getString(R.string.connection_test_testing)
-                lifecycleScope.launch {
-                    V2RayServiceManager.testCurrentServerRealPing()
-                }
+                mainViewModel.testCurrentServerRealPing()
             }
         }
 
@@ -79,7 +75,6 @@ class MainActivity : HelperBaseActivity() {
     private fun setupServerList() {
         val rv = findViewById<RecyclerView>(R.id.rvServers)
         rv.layoutManager = LinearLayoutManager(this)
-
         val adapter = ServerListAdapter(getServerList(), ::onServerSelected)
         rv.adapter = adapter
     }
@@ -100,6 +95,16 @@ class MainActivity : HelperBaseActivity() {
                 delay(500)
                 startV2Ray()
             }
+        }
+    }
+
+    fun restartV2Ray() {
+        if (isRunning) {
+            V2RayServiceManager.stopVService(this)
+        }
+        lifecycleScope.launch {
+            delay(500)
+            startV2Ray()
         }
     }
 
@@ -195,7 +200,7 @@ class MainActivity : HelperBaseActivity() {
         updateUI()
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         checkServiceStatus()
     }
