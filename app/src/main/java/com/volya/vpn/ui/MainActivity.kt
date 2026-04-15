@@ -1,5 +1,7 @@
 package com.volya.vpn.ui
 
+import androidx.activity.OnBackPressedCallback
+
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.net.VpnService
@@ -50,9 +52,11 @@ class MainActivity : HelperBaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        onBackPressedDispatcher.addCallback(this) {
-            moveTaskToBack(true)
-        }
+        onBackPressedDispatcher.addCallback(object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                moveTaskToBack(true)
+            }
+        })
 
         val fab = findViewById<FloatingActionButton>(R.id.fab)
         fab.setOnClickListener { handleFabAction() }
