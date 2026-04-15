@@ -26,6 +26,7 @@ import com.volya.vpn.handler.MmkvManager
 import com.volya.vpn.handler.NotificationManager
 import com.volya.vpn.handler.SettingsManager
 import com.volya.vpn.handler.V2RayServiceManager
+import com.volya.vpn.util.FileLogger
 import com.volya.vpn.util.MyContextWrapper
 import com.volya.vpn.util.Utils
 import java.lang.ref.SoftReference
@@ -75,6 +76,8 @@ class V2RayVpnService : VpnService(), ServiceControl {
 
     override fun onCreate() {
         super.onCreate()
+        FileLogger.init(this)
+        FileLogger.info("===== Volya VPN Service starting =====")
         Log.i(AppConfig.TAG, "StartCore-VPN: Service created")
         val policy = StrictMode.ThreadPolicy.Builder().permitAll().build()
         StrictMode.setThreadPolicy(policy)
@@ -135,11 +138,25 @@ class V2RayVpnService : VpnService(), ServiceControl {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        FileLogger.info("onStartCommand received")
         Log.i(AppConfig.TAG, "StartCore-VPN: Service command received")
         // Call startForeground immediately to avoid Android timeout
         startForegroundNow()
-        setupVpnService()
-        startService()
+        FileLogger.info("startForegroundNow called")
+        try {
+            setupVpnService()
+            FileLogger.info("setupVpnService completed")
+        } catch (e: Exception) {
+            FileLogger.error("setupVpnService failed", e)
+            throw e
+        }
+        try {
+            startService()
+            FileLogger.info("startService called")
+        } catch (e: Exception) {
+            FileLogger.error("startService failed", e)
+            throw e
+        }
         return START_STICKY
         //return super.onStartCommand(intent, flags, startId)
     }
@@ -149,11 +166,17 @@ class V2RayVpnService : VpnService(), ServiceControl {
     }
 
     override fun startService() {
+        FileLogger.info("startService: entering")
         if (!::mInterface.isInitialized) {
+            FileLogger.error("startService: Interface not initialized")
             Log.e(AppConfig.TAG, "StartCore-VPN: Interface not initialized")
             return
         }
-        if (!V2RayServiceManager.startCoreLoop(mInterface)) {
+        FileLogger.info("startService: starting core loop with fd=${mInterface.fd}")
+        val coreStarted = V2RayServiceManager.startCoreLoop(mInterface)
+        FileLogger.info("startService: core loop start returned: $coreStarted")
+        if (!coreStarted) {
+            FileLogger.error("startService: Failed to start core loop")
             Log.e(AppConfig.TAG, "StartCore-VPN: Failed to start core loop")
             stopAllService()
             return
@@ -180,20 +203,26 @@ class V2RayVpnService : VpnService(), ServiceControl {
      * Prepares the VPN and configures it if preparation is successful.
      */
     private fun setupVpnService() {
+        FileLogger.info("setupVpnService: preparing VPN...")
         val prepare = prepare(this)
         if (prepare != null) {
+            FileLogger.info("setupVpnService: Permission not granted (prepare returned non-null)")
             Log.e(AppConfig.TAG, "StartCore-VPN: Permission not granted")
             stopSelf()
             return
         }
+        FileLogger.info("setupVpnService: Permission granted")
 
         if (configureVpnService() != true) {
+            FileLogger.info("setupVpnService: configureVpnService returned false")
             Log.e(AppConfig.TAG, "StartCore-VPN: Configuration failed")
             stopSelf()
             return
         }
+        FileLogger.info("setupVpnService: VPN configured")
 
         runTun2socks()
+        FileLogger.info("setupVpnService: tun2socks started")
     }
 
     /**
@@ -201,18 +230,32 @@ class V2RayVpnService : VpnService(), ServiceControl {
      * @return True if the VPN service was configured successfully, false otherwise.
      */
     private fun configureVpnService(): Boolean {
+        FileLogger.info("configureVpnService: starting")
         val builder = Builder()
 
         // Configure network settings (addresses, routing and DNS)
-        configureNetworkSettings(builder)
+        try {
+            configureNetworkSettings(builder)
+            FileLogger.info("configureVpnService: network settings configured")
+        } catch (e: Exception) {
+            FileLogger.error("configureVpnService: configureNetworkSettings failed", e)
+            return false
+        }
 
         // Configure app-specific settings (session name and per-app proxy)
-        configurePerAppProxy(builder)
+        try {
+            configurePerAppProxy(builder)
+            FileLogger.info("configureVpnService: per-app proxy configured")
+        } catch (e: Exception) {
+            FileLogger.error("configureVpnService: configurePerAppProxy failed", e)
+            return false
+        }
 
         // Close the old interface since the parameters have been changed
         try {
             if (::mInterface.isInitialized) {
                 mInterface.close()
+                FileLogger.info("configureVpnService: old interface closed")
             }
         } catch (e: Exception) {
             Log.w(AppConfig.TAG, "Failed to close old interface", e)
@@ -223,10 +266,13 @@ class V2RayVpnService : VpnService(), ServiceControl {
 
         // Create a new interface using the builder and save the parameters
         try {
+            FileLogger.info("configureVpnService: establishing VPN interface...")
             mInterface = builder.establish()!!
             isRunning = true
+            FileLogger.info("configureVpnService: VPN interface established, fd=${mInterface.fd}")
             return true
         } catch (e: Exception) {
+            FileLogger.error("configureVpnService: Failed to establish VPN interface", e)
             Log.e(AppConfig.TAG, "Failed to establish VPN interface", e)
             stopAllService()
         }

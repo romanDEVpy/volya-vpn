@@ -25,6 +25,7 @@ import com.volya.vpn.fmt.TrojanFmt
 import com.volya.vpn.fmt.VlessFmt
 import com.volya.vpn.fmt.VmessFmt
 import com.volya.vpn.fmt.WireguardFmt
+import com.volya.vpn.util.FileLogger
 import com.volya.vpn.util.HttpUtil
 import com.volya.vpn.util.JsonUtil
 import com.volya.vpn.util.Utils
@@ -43,16 +44,28 @@ object V2rayConfigManager {
      * @return A ConfigResult object containing the configuration details or indicating failure.
      */
     fun getV2rayConfig(context: Context, guid: String): ConfigResult {
+        FileLogger.info("getV2rayConfig: guid=$guid")
         try {
-            val config = MmkvManager.decodeServerConfig(guid) ?: return ConfigResult(false)
-            return if (config.configType == EConfigType.CUSTOM) {
+            val config = MmkvManager.decodeServerConfig(guid)
+            if (config == null) {
+                FileLogger.error("getV2rayConfig: decodeServerConfig returned null for guid=$guid")
+                return ConfigResult(false)
+            }
+            FileLogger.info("getV2rayConfig: configType=${config.configType}, remarks=${config.remarks}")
+            val result = if (config.configType == EConfigType.CUSTOM) {
+                FileLogger.info("getV2rayConfig: using custom config")
                 getV2rayCustomConfig(context, guid, config)
             } else if (config.configType == EConfigType.POLICYGROUP) {
+                FileLogger.info("getV2rayConfig: using group config")
                 getV2rayGroupConfig(context, guid, config)
             } else {
+                FileLogger.info("getV2rayConfig: using normal config")
                 getV2rayNormalConfig(context, guid, config)
             }
+            FileLogger.info("getV2rayConfig: returned, status=${result.status}, contentLen=${result.content.length}")
+            return result
         } catch (e: Exception) {
+            FileLogger.error("getV2rayConfig: exception", e)
             Log.e(AppConfig.TAG, "Failed to get V2ray config", e)
             return ConfigResult(false)
         }

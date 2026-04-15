@@ -18,6 +18,7 @@ import com.volya.vpn.enums.EConfigType
 import com.volya.vpn.extension.toast
 import com.volya.vpn.service.V2RayProxyOnlyService
 import com.volya.vpn.service.V2RayVpnService
+import com.volya.vpn.util.FileLogger
 import com.volya.vpn.util.MessageUtil
 import com.volya.vpn.util.Utils
 import kotlinx.coroutines.CoroutineScope
@@ -162,33 +163,40 @@ object V2RayServiceManager {
      * Starts the V2Ray core service.
      */
     fun startCoreLoop(vpnInterface: ParcelFileDescriptor?): Boolean {
+        FileLogger.info("startCoreLoop: entering, vpnInterface fd=${vpnInterface?.fd}")
         if (coreController.isRunning) {
+            FileLogger.warn("startCoreLoop: Core already running")
             Log.w(AppConfig.TAG, "StartCore-Manager: Core already running")
             return false
         }
 
         val service = getService()
         if (service == null) {
+            FileLogger.error("startCoreLoop: Service is null")
             Log.e(AppConfig.TAG, "StartCore-Manager: Service is null")
             return false
         }
 
         val guid = MmkvManager.getSelectServer()
         if (guid == null) {
+            FileLogger.error("startCoreLoop: No server selected")
             Log.e(AppConfig.TAG, "StartCore-Manager: No server selected")
             return false
         }
 
         val config = MmkvManager.decodeServerConfig(guid)
         if (config == null) {
+            FileLogger.error("startCoreLoop: Failed to decode server config for guid=$guid")
             Log.e(AppConfig.TAG, "StartCore-Manager: Failed to decode server config")
             return false
         }
 
+        FileLogger.info("startCoreLoop: Starting core loop for ${config.remarks}")
         Log.i(AppConfig.TAG, "StartCore-Manager: Starting core loop for ${config.remarks}")
         val result = V2rayConfigManager.getV2rayConfig(service, guid)
-        Log.d(AppConfig.TAG, result.content)
+        FileLogger.info("startCoreLoop: getV2rayConfig returned, status=${result.status}, content length=${result.content.length}")
         if (!result.status) {
+            FileLogger.error("startCoreLoop: Failed to get V2Ray config: ${result.content.take(200)}")
             Log.e(AppConfig.TAG, "StartCore-Manager: Failed to get V2Ray config")
             return false
         }
@@ -206,19 +214,25 @@ object V2RayServiceManager {
 
         currentConfig = config
         var tunFd = vpnInterface?.fd ?: 0
+        FileLogger.info("startCoreLoop: hevTun=${SettingsManager.isUsingHevTun()}, tunFd=$tunFd")
         if (SettingsManager.isUsingHevTun()) {
             tunFd = 0
         }
 
         try {
+            FileLogger.info("startCoreLoop: showing notification...")
             NotificationManager.showNotification(currentConfig)
+            FileLogger.info("startCoreLoop: calling coreController.startLoop with tunFd=$tunFd")
             coreController.startLoop(result.content, tunFd)
+            FileLogger.info("startCoreLoop: coreController.startLoop returned, isRunning=${coreController.isRunning}")
         } catch (e: Exception) {
+            FileLogger.error("startCoreLoop: Failed to start core loop", e)
             Log.e(AppConfig.TAG, "StartCore-Manager: Failed to start core loop", e)
             return false
         }
 
         if (coreController.isRunning == false) {
+            FileLogger.error("startCoreLoop: Core failed to start (isRunning=false after startLoop)")
             Log.e(AppConfig.TAG, "StartCore-Manager: Core failed to start")
             MessageUtil.sendMsg2UI(service, AppConfig.MSG_STATE_START_FAILURE, "")
             NotificationManager.cancelNotification()
@@ -226,10 +240,12 @@ object V2RayServiceManager {
         }
 
         try {
+            FileLogger.info("startCoreLoop: core started successfully!")
             MessageUtil.sendMsg2UI(service, AppConfig.MSG_STATE_START_SUCCESS, "")
             NotificationManager.startSpeedNotification(currentConfig)
             Log.i(AppConfig.TAG, "StartCore-Manager: Core started successfully")
         } catch (e: Exception) {
+            FileLogger.error("startCoreLoop: Failed to complete startup", e)
             Log.e(AppConfig.TAG, "StartCore-Manager: Failed to complete startup", e)
             return false
         }
