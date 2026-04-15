@@ -90,6 +90,19 @@ class V2RayVpnService : VpnService(), ServiceControl {
 //        super.onLowMemory()
 //    }
 
+    /**
+     * Starts foreground immediately with a minimal notification to avoid timeout.
+     */
+    private fun startForegroundNow() {
+        val notification = android.app.Notification.Builder(this, AppConfig.RAY_NG_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_name)
+            .setContentTitle("Volya VPN")
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .build()
+        startForeground(1, notification)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         Log.i(AppConfig.TAG, "StartCore-VPN: Service destroyed")
@@ -113,6 +126,8 @@ class V2RayVpnService : VpnService(), ServiceControl {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.i(AppConfig.TAG, "StartCore-VPN: Service command received")
+        // Call startForeground immediately to avoid Android timeout
+        startForegroundNow()
         setupVpnService()
         startService()
         return START_STICKY
