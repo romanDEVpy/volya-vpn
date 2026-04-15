@@ -34,16 +34,13 @@ jobs:
 
       - name: Build APK
         run: |
-          cd V2rayNG
           chmod +x gradlew
           ./gradlew assembleFdroidDebug --no-daemon
 
       - name: Collect APKs
         run: |
           mkdir -p output
-          cp V2rayNG/app/build/outputs/apk/fdroid/debug/*.apk output/ 2>/dev/null || \
-          cp app/build/outputs/apk/fdroid/debug/*.apk output/ 2>/dev/null || \
-          find . -name "*.apk" -exec cp {} output/ \;
+          find . -path "./app/build/outputs/apk/fdroid/debug/*.apk" -exec cp {} output/ \;
           ls -la output/
 
       - name: Upload APK artifact
